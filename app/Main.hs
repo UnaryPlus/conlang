@@ -5,26 +5,125 @@
 
 module Main where
 
-import Data.Void (Void)
-import Data.Text (Text, singleton)
-import Data.Maybe (fromMaybe)
-import Data.String (IsString(fromString))
-import Control.Applicative (liftA2)
-
+import qualified Data.Set as Set
 import qualified Data.Map as Map
+import Data.Set (Set)
 import Data.Map (Map)
+import Data.Text (Text)
 
---VALID SOUNDS:
+import Change
+
+type Sound = Text
+
+--TODO: update sound lists
+
+consonant :: Set Sound
+consonant = Set.fromList
+  [ "m", "mˠ", "n", "ɲ", "ŋ", "ŋʷ"
+  , "p", "pˠ", "t", "k", "kʷ"
+  , "b", "bˠ", "d", "g", "gʷ"
+  , "f", "s", "ʃ", "ç", "x", "xʷ", "h", "hʷ"
+  , "v", "z", "ʒ", "ɣ", "ɣʷ"
+  , "l", "lˠ", "r", "rᵒ", "j"
+  ]
+
+vowel :: Set Sound
+vowel = Set.fromList
+  [ "a", "e", "i", "ɑ", "ɒ", "ə", "y", "o", "u" ]
+
+anySound :: Set Sound
+anySound = consonant `Set.union` vowel
+
+labialized :: Set Sound
+labialized = Set.fromList
+  [ "ŋʷ", "kʷ", "gʷ", "xʷ", "hʷ", "ɣʷ" ]
+
+nonLabialized :: Set Sound
+nonLabialized = consonant `Set.difference` labialized
+
+frontVowel :: Set Sound
+frontVowel = Set.fromList [ "e", "i" ]
+
+roundedVowel :: Set Sound
+roundedVowel = Set.fromList [ "ɒ", "y", "o", "u" ]
+
+--sound changes
+
+umlaut = [ ("o", ["u"]) ] // [ before [frontVowel], before [consonant, frontVowel] ]
+
+palatalize = [ ("s", ["ʃ"]) ] // [ before [Set.fromList [ "i", "u" ]] ]
+
+labialize = [ ("ŋ", ["ŋʷ"]), ("k", ["kʷ"]), ("x", ["xʷ"]), ("h", ["hʷ"]) ]
+  // [ before [roundedVowel] ]
+
+--TODO: VOWEL LOSS
+
+rounding = [ ("i", ["ɨ"]), ("e", ["ə"]), ("a", ["ɒ"]) ]
+  // [ before [labialized, consonant], beforeSharp [labialized] ]
+
+delabializeCoda = [ ("ŋʷ", ["ŋ"]), ("kʷ", ["k"]), ("xʷ", ["x"]), ("hʷ", ["h"]) ]
+  // [ before [consonant], beforeSharp [] ]
+
+closeSplit = Split $ Map.singleton "ɨ"
+  [ (["u"], after [labialized])
+  , (["i"], after [Set.singleton "i"])
+  , (["i"], after [consonant, Set.singleton "i"])
+  , (["i"], after [consonant, consonant, Set.singleton "i"])
+  , (["ə"], always)
+  ]
+
+delabialize = [ ("ŋʷ", ["ŋ"]), ("kʷ", ["k"]), ("xʷ", ["x"]), ("hʷ", ["h"]) ]
+  // [ before [roundedVowel] ]
+
+preAssimilate = Split $ Map.fromList
+  [ ("m", assimilateNasal)
+  , ("n", assimilateNasal)
+  , ("ŋ", assimilateNasal)
+  , ("s", [ (["ʃ"], before [Set.singleton "ʃ"]) ])
+  , ("ʃ", [ (["s"], before [Set.singleton "s"]) ])
+
+  , ("h", assimilateH)
+  , ("x", [ (["k"], before [Set.fromList [ "s", "ʃ" ]]) ])
+
+  , ("p", [ (["f"], before [Set.fromList [ "n", "ŋ", "ŋʷ", "t", "k", "kʷ" ]])
+          , (["b"], before [liquid]) ])
+  , ("t", [ (["rᵒ"], before [Set.fromList [ "m", "ŋ", "ŋʷ", "p", "k", "kʷ" ]])
+          , (["d"], before [liquid]) ])
+  , ("k", [ (["x"], before [Set.fromList [ "m", "ŋ", "ŋʷ", "p", "k", "kʷ" ]])
+          , (["g"], before [liquid]) ])
+  ]
+
+  where
+    assimilateNasal =
+      [ (["m"], before [Set.fromList [ "m", "p" ]])
+      , (["n"], before [Set.fromList [ "n", "t" ]])
+      , (["ŋ"], before [Set.fromList [ "ŋ", "ŋʷ", "k", "kʷ" ]])
+      ]
+
+    assimilateH =
+      [ (["f"], before [Set.fromList [ "p", "f" ]])
+      , (["rᵒ"], before [Set.singleton "t"])
+      , (["s"], before [Set.singleton "s"])
+      , (["ʃ"], before [Set.singleton "ʃ"])
+      , (["x"], before [Set.fromList [ "k", "kʷ", "x", "xʷ" ]])
+      ]
+
+    nasal = Set.fromList [ "m", "n", "ŋ", "ŋʷ" ]
+    liquid = Set.fromList [ "l", "r" ]
+
+
+
+
+
+
+
+
+
+
+
+
 {-
-m mˠ n ɲ ŋ ŋʷ
-p pˠ t k kʷ
-b bˠ d g gʷ
-f s ʃ ç x xʷ h hʷ
-v z ʒ ɣ ɣʷ
-l lˠ r rᵒ j
 
-a e i ɑ ɒ ə y o u
--}
 
 type Nat = Word
 
@@ -210,3 +309,5 @@ simplify1 = replaceR \x right ->
 
 main :: IO ()
 main = putStrLn "Hello, Haskell!"
+
+-}
