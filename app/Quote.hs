@@ -51,8 +51,6 @@ data ChangeS
   | SplitS (Pairing SetS (Pairing String (NonEmpty EnvS)))
   deriving (Data)
 
---TODO: fix parser so that newlines can't occur in environments
-
 type Parser = M.Parsec Void String
 
 special = ">/,[]{}?*_"
@@ -85,6 +83,8 @@ charS = lit <|> oneChar <|> multipleChar
       <*> M.takeWhile1P Nothing isIdentifier
       <* spaces
       <* symbol ']'
+
+--TODO: require brackets before >
 
 setS :: Parser SetS
 setS = NE.some charS
@@ -124,6 +124,7 @@ splitS = SplitS <$> NE.some clause
       <* symbolN '/' <*> NE.sepBy1 envS (symbolN ',')
 
 --TODO: fix setLoc
+
 setLoc :: (Int, Int) -> Parser ()
 setLoc (line, col) =
   M.updateParserState \state ->
