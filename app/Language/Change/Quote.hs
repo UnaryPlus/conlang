@@ -3,7 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# OPTIONS_GHC -Wno-missing-fields #-}
-module Quote (sim, spl) where
+module Language.Change.Quote (sim, spl) where
 
 import qualified Text.Megaparsec as M
 import qualified Control.Monad.Combinators.NonEmpty as NE
@@ -24,7 +24,7 @@ import Language.Haskell.TH.Quote (QuasiQuoter(..), dataToExpQ)
 import Language.Haskell.TH (Q, Exp)
 import Data.Generics.Aliases (extQ)
 
-import Change
+import Language.Change
 
 type Pairing a b = NonEmpty (a, b)
 

@@ -11,8 +11,8 @@ import Data.Set (Set)
 import Data.Map (Map)
 import Data.Text (Text)
 
-import Change
-import Quote (sim, spl)
+import Language.Change
+import Language.Change.Quote (sim, spl)
 
 type Sound = Text
 

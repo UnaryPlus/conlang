@@ -1,6 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BlockArguments #-}
-module Change (Pattern(..), Env(..), Change(..), replace, applyChange) where
+module Language.Change (Pattern(..), Env(..), Change(..), replace, applyChange) where
 
 import qualified Data.Set as Set
 import qualified Data.Map as Map
