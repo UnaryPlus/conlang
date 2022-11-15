@@ -1,9 +1,13 @@
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Generate where
 
-import Control.Monad.Random (MonadRandom, getRandomR, replicateM, evalRandIO)
+import qualified Control.Monad.State as State
+import Control.Monad.State (MonadState, evalStateT)
+import Control.Monad.Random (MonadRandom, getRandomR, evalRandIO)
+import Control.Monad (replicateM)
 import Data.List.NonEmpty (NonEmpty(..))
 
 choose :: MonadRandom m => NonEmpty (a, Double) -> m a
@@ -65,12 +69,16 @@ genSyllableCV = do
   c <- choose if v == "o" then consonantO else consonantA
   return (c ++ v)
 
-genSyllable :: MonadRandom m => m String
+genSyllable :: (MonadRandom m, MonadState Bool m) => m String
 genSyllable = do
-  x <- getRandomR (0, 2)
-  if (x :: Int) == 0
-    then choose vowel
-    else genSyllableCV
+  b <- State.get --was the last syllable a vowel?
+  if b then State.put False >> genSyllableCV
+  else do
+    x <- getRandomR (0, 2)
+    if (x :: Int) == 0
+      then State.put True >> choose vowel
+      else State.put False >> genSyllableCV
+
 
 wordLength :: NonEmpty (Int, Double)
 wordLength =
@@ -80,10 +88,10 @@ wordLength =
   , (5, 0.5)
   ]
 
-genWord :: MonadRandom m => m String
+genWord :: (MonadState Bool m, MonadRandom m) => m String
 genWord = do
   n <- choose wordLength
   concat <$> replicateM n genSyllable
 
 genWordIO :: IO String
-genWordIO = evalRandIO genWord
+genWordIO = evalRandIO (evalStateT genWord False)

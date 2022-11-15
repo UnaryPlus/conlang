@@ -38,6 +38,7 @@ executable conlang
                       parser-combinators,
                       template-haskell,
                       containers,
+                      mtl,
                       syb,
                       MonadRandom
 
