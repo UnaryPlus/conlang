@@ -37,7 +37,8 @@ executable conlang
                       replace-megaparsec,
                       parser-combinators,
                       template-haskell,
-                      containers
+                      containers,
+                      syb
 
     hs-source-dirs:   app
     default-language: Haskell2010

@@ -1,22 +1,28 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# OPTIONS_GHC -Wno-missing-fields #-}
-module Quote where
+module Quote (sim, spl) where
 
 import qualified Text.Megaparsec as M
 import qualified Control.Monad.Combinators.NonEmpty as NE
-
 import Text.Megaparsec ((<|>))
-import Data.List.NonEmpty (NonEmpty(..))
+
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import Data.Map (Map)
+import Data.Set (Set)
+import Data.List.NonEmpty (NonEmpty(..), toList)
+import Data.Data (Data)
 import Data.Void (Void)
 import Control.Monad (void)
-
 import Data.Char
 
 import qualified Language.Haskell.TH as TH
-
-import Language.Haskell.TH.Quote (QuasiQuoter(..))
+import Language.Haskell.TH.Quote (QuasiQuoter(..), dataToExpQ)
 import Language.Haskell.TH (Q, Exp)
+import Data.Generics.Aliases (extQ)
 
 import Change
 
@@ -24,7 +30,9 @@ type Pairing a b = NonEmpty (a, b)
 
 data CharS
   = Lit Char
+  | CSet (Set Char)
   | AntiQ String
+  deriving (Data)
 
 type SetS = NonEmpty CharS
 
@@ -32,14 +40,18 @@ data PatternS
   = OneS SetS
   | OptionalS SetS
   | ManyS SetS
+  deriving (Data)
 
 data EnvS
   = EnvS [PatternS] [PatternS]
+  deriving (Data)
 
 data ChangeS
   = SimpleS (Pairing SetS String) (NonEmpty EnvS)
   | SplitS (Pairing SetS (Pairing String (NonEmpty EnvS)))
+  deriving (Data)
 
+--TODO: fix parser so that newlines can't occur in environments
 
 type Parser = M.Parsec Void String
 
@@ -49,11 +61,13 @@ isSound c = not (c `elem` special || isAsciiUpper c || isSpace c)
 
 isIdentifier c = isAlphaNum c || c == '\'' || c == '_'
 
-spaces :: Parser ()
-spaces = void (M.many (M.satisfy isSpace))
+spaces, spacesN :: Parser ()
+spaces = void (M.many (M.single ' '))
+spacesN = void (M.many (M.satisfy isSpace))
 
-symbol :: Char -> Parser ()
+symbol, symbolN :: Char -> Parser ()
 symbol c = M.single c >> spaces
+symbolN c = M.single c >> spacesN
 
 replacement :: Parser String
 replacement = M.many (M.satisfy isSound <* spaces)
@@ -96,7 +110,7 @@ simpleS = SimpleS
     change = (,) <$> setS <* symbol '>' <*> replacement
 
 splitS :: Parser ChangeS
-splitS = SplitS <$> NE.sepEndBy1 clause (symbol ';')
+splitS = SplitS <$> NE.some clause
   where
     clause = (,) <$> setS <*> NE.some change
     change = (,) <$ symbol '>' <*> replacement
@@ -132,14 +146,48 @@ quote p input = do
       p' = setLoc (line, col) >> total p
   case M.runParser p' file input of
     Left errors -> fail (M.errorBundlePretty errors)
-    Right change -> quoteChange change
+    Right change -> let
+      change' = dataToExpQ (const Nothing `extQ` antiquote) change
+      in [| $(TH.varE 'convertChange) $(change') |]
 
-quoteChange :: ChangeS -> Q Exp
-quoteChange = \case
-  SimpleS cs envs -> let
-    cs' = foldr cons [] cs
-    in Simple (Map.fromList cs')
+antiquote :: CharS -> Maybe (Q Exp)
+antiquote = \case
+  Lit _ -> Nothing
+  CSet _ -> Nothing
+  AntiQ n -> Just [| $(TH.conE 'CSet) $(TH.varE (TH.mkName ("set" ++ n))) |]
+
+convertSet :: SetS -> Set Char
+convertSet = foldMap convert
+  where
+    convert = \case
+      Lit c -> Set.singleton c
+      CSet s -> s
+      AntiQ _ -> undefined
+
+convertPattern :: PatternS -> Pattern Char
+convertPattern = \case
+  OneS s -> One (convertSet s)
+  OptionalS s -> Optional (convertSet s)
+  ManyS s -> Many (convertSet s)
+
+convertEnv :: EnvS -> Env Char
+convertEnv = \case
+  EnvS ps1 ps2 -> Env (reverse (map convertPattern ps1)) (map convertPattern ps2)
+
+convertChange :: ChangeS -> Change Char
+convertChange = \case
+  SimpleS mapping envs ->
+    Simple (foldr split1 Map.empty mapping) (map convertEnv (toList envs))
+
+  SplitS mapping ->
+    Split (foldr (\(set, pairs) -> split2 (set, foldr split3 [] pairs)) Map.empty mapping)
 
   where
-    cons :: Foldable t => (t a, b) -> [(a, b)] -> [(a, b)]
-    cons (xs, y) cs = foldr (\x -> ((x, y):)) cs xs
+    split1 :: (SetS, a) -> Map Char a -> Map Char a
+    split1 (set, x) m = foldr (\c -> Map.insert c x) m (convertSet set)
+
+    split2 :: (SetS, [a]) -> Map Char [a] -> Map Char [a]
+    split2 (set, xs) m = foldr (\c -> Map.insertWith (++) c xs) m (convertSet set)
+
+    split3 :: Foldable t => (a, t EnvS) -> [(a, Env Char)] -> [(a, Env Char)]
+    split3 (x, envs) m = foldr (\e -> ((x, convertEnv e) :)) m envs

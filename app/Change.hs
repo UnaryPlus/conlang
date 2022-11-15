@@ -1,5 +1,5 @@
-{-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE BlockArguments #-}
 module Change (Pattern(..), Env(..), Change(..), replace, applyChange) where
 
 import qualified Data.Set as Set
