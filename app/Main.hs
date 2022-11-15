@@ -27,7 +27,7 @@ changes =
   [ [sim| o > u / _C?ʷ?{ie} |]
   , [sim| s > ʃ / _{iu} |]
   , [sim| ŋ > ŋʷ, k > kʷ, x > xʷ, h > hʷ / _{ou} |]
-    --TODO: vowel loss
+  --TODO: vowel loss
   , [sim| i > ɨ, e > ə, a > o / _Cʷ{C#} |]
   , [spl|
       ɨ > u / ʷ_
@@ -76,5 +76,5 @@ changes =
   , [sim| m > mb, n > nd, ŋ > ŋg / _{lr} |]
   --TODO: stress shift
   --TODO: voicing
-  
+
   ]

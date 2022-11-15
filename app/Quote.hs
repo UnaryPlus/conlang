@@ -71,7 +71,7 @@ symbolN c = M.single c >> spacesN
 
 --allows newlines
 replacement :: Parser String
-replacement = M.sepBy (M.satisfy isSound) spaces <* spacesN
+replacement = M.takeWhileP Nothing isSound <* spacesN
 
 charS :: Parser CharS
 charS = lit <|> oneChar <|> multipleChar
@@ -82,7 +82,7 @@ charS = lit <|> oneChar <|> multipleChar
 
     multipleChar = AntiQ
       <$ symbol '['
-      <*> M.some (M.satisfy isIdentifier)
+      <*> M.takeWhile1P Nothing isIdentifier
       <* spaces
       <* symbol ']'
 
@@ -123,6 +123,7 @@ splitS = SplitS <$> NE.some clause
     change = (,) <$ symbolN '>' <*> replacement
       <* symbolN '/' <*> NE.sepBy1 envS (symbolN ',')
 
+--TODO: fix setLoc
 setLoc :: (Int, Int) -> Parser ()
 setLoc (line, col) =
   M.updateParserState \state ->
@@ -135,9 +136,8 @@ setLoc (line, col) =
         posState' = posState { M.pstateSourcePos = sourcePos' }
     in state { M.statePosState = posState' }
 
-
 total :: Parser a -> Parser a
-total p = spaces >> p <* M.eof
+total p = spacesN >> p <* M.eof
 
 sim :: QuasiQuoter
 sim = QuasiQuoter { quoteExp = quote simpleS }
