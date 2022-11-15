@@ -79,7 +79,6 @@ genSyllable = do
       then State.put True >> choose vowel
       else State.put False >> genSyllableCV
 
-
 wordLength :: NonEmpty (Int, Double)
 wordLength =
   [ (2, 1)

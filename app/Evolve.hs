@@ -22,22 +22,32 @@ setC = Set.fromList "mnŋptkfsxhlr"
 setV = Set.fromList "aeiou"
 setVoiced = undefined
 
-changes :: [Change Char]
-changes =
+stage1 :: [Change Char]
+stage1 =
   [ [sim| o > u / _C?ʷ?{ie} |]
   , [sim| s > ʃ / _{iu} |]
   , [sim| ŋ > ŋʷ, k > kʷ, x > xʷ, h > hʷ / _{ou} |]
-  --TODO: vowel loss
-  , [sim| i > ɨ, e > ə, a > o / _Cʷ{C#} |]
+  ]
+  
+--TODO: vowel loss
+
+vowelLoss :: String -> String
+vowelLoss = undefined
+
+changes :: [Change Char]
+changes =
+
+
+  [ [sim| i > ɨ, e > ə, a > o / _Cʷ{C#} |]
   , [spl|
       ɨ > u / ʷ_
         > i / iC?ʷ?C?_
         > ə / _
     |]
-  , [sim| ŋʷ > ŋ, kʷ > k, xʷ > x, hʷ > h / _{ouC#} |]
+  , [sim| ʷ > / _{ouC#} |]
   , [spl|
-      m n ŋ
-        > m / _{pm}
+      {m n ŋ}
+        > m / _{mp}
         > n / _{nt}
         > ŋ / _{ŋk}
 

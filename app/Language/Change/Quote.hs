@@ -87,15 +87,12 @@ charS = lit <|> oneChar <|> multipleChar
 --TODO: require brackets before >
 
 setS :: Parser SetS
-setS = NE.some charS
-
-setS' :: Parser SetS
-setS' = (:|[]) <$> charS
-    <|> M.between (symbol '{') (symbol '}') setS
+setS = (:| []) <$> charS
+  <|> M.between (symbol '{') (symbol '}') (NE.some charS)
 
 patternS :: Parser PatternS
 patternS = do
-  s <- setS'
+  s <- setS
   M.try (symbol '?' >> return (OptionalS s))
     <|> M.try (symbol '*' >> return (ManyS s))
     <|> return (OneS s)
