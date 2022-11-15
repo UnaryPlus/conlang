@@ -62,15 +62,16 @@ isSound c = not (c `elem` special || isAsciiUpper c || isSpace c)
 isIdentifier c = isAlphaNum c || c == '\'' || c == '_'
 
 spaces, spacesN :: Parser ()
-spaces = void (M.many (M.single ' '))
-spacesN = void (M.many (M.satisfy isSpace))
+spaces = void (M.takeWhileP Nothing (== ' '))
+spacesN = void (M.takeWhileP Nothing isSpace)
 
 symbol, symbolN :: Char -> Parser ()
 symbol c = M.single c >> spaces
 symbolN c = M.single c >> spacesN
 
+--allows newlines
 replacement :: Parser String
-replacement = M.many (M.satisfy isSound <* spaces)
+replacement = M.sepBy (M.satisfy isSound) spaces <* spacesN
 
 charS :: Parser CharS
 charS = lit <|> oneChar <|> multipleChar
@@ -82,6 +83,7 @@ charS = lit <|> oneChar <|> multipleChar
     multipleChar = AntiQ
       <$ symbol '['
       <*> M.some (M.satisfy isIdentifier)
+      <* spaces
       <* symbol ']'
 
 setS :: Parser SetS
@@ -98,23 +100,28 @@ patternS = do
     <|> M.try (symbol '*' >> return (ManyS s))
     <|> return (OneS s)
 
+--allows newlines
 envS :: Parser EnvS
-envS = EnvS <$> M.many patternS <* symbol '_' <*> M.many patternS
+envS = EnvS
+  <$> M.many patternS
+  <* symbol '_'
+  <*> M.many patternS
+  <* spacesN
 
 simpleS :: Parser ChangeS
 simpleS = SimpleS
-  <$> NE.sepBy1 change (symbol ',')
-  <* symbol '/'
-  <*> NE.sepBy1 envS (symbol ',')
+  <$> NE.sepBy1 change (symbolN ',')
+  <* symbolN '/'
+  <*> NE.sepBy1 envS (symbolN ',')
   where
     change = (,) <$> setS <* symbol '>' <*> replacement
 
 splitS :: Parser ChangeS
 splitS = SplitS <$> NE.some clause
   where
-    clause = (,) <$> setS <*> NE.some change
-    change = (,) <$ symbol '>' <*> replacement
-      <* symbol '/' <*> NE.sepBy1 envS (symbol ',')
+    clause = (,) <$> setS <* spacesN <*> NE.some change
+    change = (,) <$ symbolN '>' <*> replacement
+      <* symbolN '/' <*> NE.sepBy1 envS (symbolN ',')
 
 setLoc :: (Int, Int) -> Parser ()
 setLoc (line, col) =
