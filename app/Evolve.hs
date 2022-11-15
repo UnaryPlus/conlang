@@ -22,26 +22,55 @@ setC = Set.fromList "mnŋptkfsxhlr"
 setV = Set.fromList "aeiou"
 setVoiced = undefined
 
+isVowel :: Char -> Bool
+isVowel x = x `Set.member` setV
+
 stage1 :: [Change Char]
 stage1 =
-  [ [sim| o > u / _C?ʷ?{ie} |]
+  [ [sim| o > u / _'?C?ʷ?{ie} |]
   , [sim| s > ʃ / _{iu} |]
   , [sim| ŋ > ŋʷ, k > kʷ, x > xʷ, h > hʷ / _{ou} |]
   ]
-  
---TODO: vowel loss
+
+data VowelState
+  = First
+  | AfterVowel
+  | Other
+  deriving (Eq)
 
 vowelLoss :: String -> String
-vowelLoss = undefined
+vowelLoss xs = let
+  strong = maybe True odd (stressedVowel xs)
+  in vowelLoss' (strong, First) xs
 
-changes :: [Change Char]
-changes =
+vowelLoss' :: (Bool, VowelState) -> String -> String
+vowelLoss' (strong, st) = \case
+  [] -> []
+  x:xs | isVowel x -> let
+    strong' = case xs of { '\'':_ -> True; _ -> strong }
+    beforeVowel = case xs of { v:_ | isVowel v -> True; _ -> False }
+    keep = strong' || beforeVowel || st == AfterVowel || st == First
 
+    st' = if beforeVowel then AfterVowel else Other
+    xs' = vowelLoss' (not strong', st') xs
+    in if keep then x:xs' else xs'
 
-  [ [sim| i > ɨ, e > ə, a > o / _Cʷ{C#} |]
+    | otherwise -> x : vowelLoss' (strong, st) xs
+
+--how many vowels are before the '?
+stressedVowel :: String -> Maybe Int
+stressedVowel = \case
+  [] -> Nothing
+  '\'':_ -> Just 0
+  x:xs | isVowel x -> (1+) <$> stressedVowel xs
+  _:xs -> stressedVowel xs
+
+stage2 :: [Change Char]
+stage2 =
+  [ [sim| i > ɨ, e > ə, a > o / _'?Cʷ{C#} |]
   , [spl|
       ɨ > u / ʷ_
-        > i / iC?ʷ?C?_
+        > i / i'?C?ʷ?C?_
         > ə / _
     |]
   , [sim| ʷ > / _{ouC#} |]
