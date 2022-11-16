@@ -27,7 +27,7 @@ isVowel x = x `Set.member` setV
 
 stage1 :: [Change Char]
 stage1 =
-  [ [sim| o > u / _'?C?ʷ?{ie} |]
+  [ [sim| o > u / _V!*{ie} |]
   , [sim| s > ʃ / _{iu} |]
   , [sim| ŋ > ŋʷ, k > kʷ, x > xʷ, h > hʷ / _{ou} |]
   ]
@@ -70,7 +70,7 @@ stage2 =
   [ [sim| i > ɨ, e > ə, a > o / _'?Cʷ{C#} |]
   , [spl|
       ɨ > u / ʷ_
-        > i / i'?C?ʷ?C?_
+        > i / iV!*_
         > ə / _
     |]
   , [sim| ʷ > / _{ouC#} |]
