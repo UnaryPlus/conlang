@@ -36,10 +36,14 @@ data CharS
 
 type SetS = NonEmpty CharS
 
+data PSetS
+  = PSetS SetS Bool
+  deriving (Data)
+
 data PatternS
-  = OneS SetS
-  | OptionalS SetS
-  | ManyS SetS
+  = OneS PSetS
+  | OptionalS PSetS
+  | ManyS PSetS
   deriving (Data)
 
 data EnvS
@@ -53,7 +57,7 @@ data ChangeS
 
 type Parser = M.Parsec Void String
 
-special = ">/,[]{}?*_"
+special = ">/,[]{}?*!_"
 
 isSound c = not (c `elem` special || isAsciiUpper c || isSpace c)
 
@@ -84,17 +88,22 @@ charS = lit <|> oneChar <|> multipleChar
       <* spaces
       <* symbol ']'
 
---TODO: require brackets before >
-
 setS :: Parser SetS
 setS = (:| []) <$> charS
   <|> M.between (symbol '{') (symbol '}') (NE.some charS)
 
+pSetS :: Parser PSetS
+pSetS = do
+  s <- setS
+  b <- False <$ symbol '!'
+    <|> return True
+  return (PSetS s b)
+
 patternS :: Parser PatternS
 patternS = do
-  s <- setS
-  M.try (symbol '?' >> return (OptionalS s))
-    <|> M.try (symbol '*' >> return (ManyS s))
+  s <- pSetS
+  OptionalS s <$ symbol '?'
+    <|> ManyS s <$ symbol '*'
     <|> return (OneS s)
 
 --allows newlines
@@ -169,11 +178,14 @@ convertSet = foldMap convert
       CSet s -> s
       AntiQ _ -> undefined
 
+convertPSet :: PSetS -> PSet Char
+convertPSet (PSetS s b) = PSet (convertSet s) b
+
 convertPattern :: PatternS -> Pattern Char
 convertPattern = \case
-  OneS s -> One (convertSet s)
-  OptionalS s -> Optional (convertSet s)
-  ManyS s -> Many (convertSet s)
+  OneS s -> One (convertPSet s)
+  OptionalS s -> Optional (convertPSet s)
+  ManyS s -> Many (convertPSet s)
 
 convertEnv :: EnvS -> Env Char
 convertEnv = \case

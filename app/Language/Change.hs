@@ -1,6 +1,10 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BlockArguments #-}
-module Language.Change (Pattern(..), Env(..), Change(..), replace, applyChange) where
+module Language.Change
+  ( PSet(..), member
+  , Pattern(..), Env(..), Change(..)
+  , replace, applyChange
+  ) where
 
 import qualified Data.Set as Set
 import qualified Data.Map as Map
@@ -9,10 +13,17 @@ import Data.Map (Map)
 import Data.List (find)
 
 
+data PSet a
+  = PSet (Set a) Bool
+
+member :: Ord a => a -> PSet a -> Bool
+member x (PSet set b) =
+  if b then Set.member x set else Set.notMember x set
+
 data Pattern a
-  = One (Set a)
-  | Optional (Set a)
-  | Many (Set a)
+  = One (PSet a)
+  | Optional (PSet a)
+  | Many (PSet a)
 
 data Env a
   = Env [Pattern a] [Pattern a]
@@ -28,7 +39,7 @@ testPatterns list = \case
 
   One set : ps ->
     case list of
-      x:xs | x `Set.member` set -> testPatterns xs ps
+      x:xs | member x set -> testPatterns xs ps
       _ -> False
 
   Optional set : ps ->
