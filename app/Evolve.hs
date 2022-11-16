@@ -115,5 +115,23 @@ stage2 =
   , [sim| m > mb, n > nd, ŋ > ŋg / _{lr} |]
   --TODO: stress shift
   --TODO: voicing
+  , [sim| ᵒ > / _ |]
+  ]
 
+contract :: Eq a => [a] -> [a]
+contract = \case
+  [] -> []
+  x:xs -> x : contract (dropWhile (== x) xs)
+
+stage3 :: [Change Char]
+stage3 =
+  [ [spl|
+      a >   / _ə
+      i > j / _V
+      u > o / _V
+
+      ə > a / {eu}_
+      e > i / {au}_
+      o > u / {ae}_
+    |]
   ]
