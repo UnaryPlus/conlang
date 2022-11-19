@@ -3,14 +3,14 @@
 module Language.Change
   ( PSet(..), member
   , Pattern(..), Env(..), Change(..)
-  , replace, applyChange, applyChanges
+  , replace, applyChange, applyChanges, traceChanges
   ) where
 
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Data.Set (Set)
 import Data.Map (Map)
-import Data.List (find, foldl')
+import Data.List (find, foldl', scanl')
 
 data PSet a
   = PSet (Set a) Bool
@@ -79,3 +79,6 @@ applyChange = \case
 
 applyChanges :: Ord a => [Change a] -> [a] -> [a]
 applyChanges cs x = foldl' (flip applyChange) x cs
+
+traceChanges :: Ord a => [Change a] -> [a] -> [[a]]
+traceChanges cs x = scanl' (flip applyChange) x cs

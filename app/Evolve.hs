@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Evolve (prepare, evolve) where
+module Evolve (addStress, evolve, evolveTrace) where
 
 import qualified Data.Set as Set
 import qualified Data.List as List
@@ -11,21 +11,27 @@ import qualified Data.List as List
 import Language.Change
 import Language.Change.Quote (sim, spl)
 
-prepare :: String -> String
-prepare = addHash . addStress
-  where
-    addStress str =
-      case List.break isVowel str of
-        (left, []) -> left
-        (left, x:right) -> left ++ x : '\'' : right
-
-    addHash str = str ++ "#"
+addStress :: String -> String
+addStress str =
+  case List.break isVowel str of
+    (left, []) -> left
+    (left, x:right) -> left ++ x : '\'' : right
 
 evolve :: String -> String
 evolve = takeWhile (/= '#')
-       . applyChanges stage3 . contract
-       . applyChanges stage2 . vowelLoss
+       . applyChanges stage3
+       . contract
+       . applyChanges stage2
+       . vowelLoss
        . applyChanges stage1
+       . (++ "#")
+
+evolveTrace :: String -> [String]
+evolveTrace wd = let
+  s1 = traceChanges stage1 (wd ++ "#")
+  s2 = traceChanges stage2 (vowelLoss (last s1))
+  s3 = traceChanges stage3 (contract (last s2))
+  in s1 ++ s2 ++ s3
 
 voicedC = Set.fromList "mnŋbdgvzʒɣlr"
 voicelessC = Set.fromList "ptkfsʃxh"
@@ -145,13 +151,13 @@ contract = \case
 stage3 :: [Change Char]
 stage3 =
   [ [spl|
-      a >   / _ə
-      i > j / _V
-      u > o / _V
+      a >   / _'?ə
+      i > j / _'?V
+      u > o / _'?V
 
-      ə > a / {eu}_
-      e > i / {au}_
-      o > u / {ae}_
+      ə > a / {eu}'?_
+      e > i / {au}'?_
+      o > u / {ae}'?_
     |]
   --TODO: fix stress
   ]
