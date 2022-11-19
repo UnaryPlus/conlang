@@ -1,13 +1,14 @@
 module Main where
 
-import Generate (genWordIO)
-import Evolve (stage1, vowelLoss)
+import Generate (genWord)
+import Evolve (prepare, evolve)
 import Control.Monad (replicateM)
-import Language.Change (applyChange)
 
-evolve :: String -> String
-evolve = vowelLoss . s1
-  where s1 x = foldr applyChange x stage1
+pad :: Int -> a -> [a] -> [a]
+pad n c str = str ++ replicate (n - length str) c
 
 main :: IO ()
-main = mapM_ (putStrLn . evolve) =<< replicateM 100 genWordIO
+main = mapM_ display =<< replicateM 100 genWord
+  where
+    display wd =
+      putStrLn (pad 16 ' ' wd ++ ">>  " ++ evolve (prepare wd))
