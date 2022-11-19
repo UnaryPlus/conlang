@@ -3,7 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# OPTIONS_GHC -Wno-missing-fields #-}
-module Language.Change.Quote (sim, spl) where
+module Language.Change.Quote (pat, env, sim, spl) where
 
 import qualified Text.Megaparsec as M
 import qualified Control.Monad.Combinators.NonEmpty as NE
@@ -146,14 +146,20 @@ setLoc (line, col) =
 total :: Parser a -> Parser a
 total p = spacesN >> p <* M.eof
 
+pat :: QuasiQuoter
+pat = QuasiQuoter { quoteExp = quote (M.many patternS) 'convertPatterns }
+
+env :: QuasiQuoter
+env = QuasiQuoter { quoteExp = quote envS 'convertEnv }
+
 sim :: QuasiQuoter
-sim = QuasiQuoter { quoteExp = quote simpleS }
+sim = QuasiQuoter { quoteExp = quote simpleS 'convertChange }
 
 spl :: QuasiQuoter
-spl = QuasiQuoter { quoteExp = quote splitS }
+spl = QuasiQuoter { quoteExp = quote splitS 'convertChange }
 
-quote :: Parser ChangeS -> String -> Q Exp
-quote p input = do
+quote :: Data a => Parser a -> TH.Name -> String -> Q Exp
+quote p convert input = do
   loc <- TH.location
   let file = TH.loc_filename loc
       (line, col) = TH.loc_start loc
@@ -162,7 +168,7 @@ quote p input = do
     Left errors -> fail (M.errorBundlePretty errors)
     Right change -> let
       change' = dataToExpQ (const Nothing `extQ` antiquote) change
-      in [| $(TH.varE 'convertChange) $(change') |]
+      in [| $(TH.varE convert) $(change') |]
 
 antiquote :: CharS -> Maybe (Q Exp)
 antiquote = \case
@@ -186,6 +192,9 @@ convertPattern = \case
   OneS s -> One (convertPSet s)
   OptionalS s -> Optional (convertPSet s)
   ManyS s -> Many (convertPSet s)
+
+convertPatterns :: [PatternS] -> [Pattern Char]
+convertPatterns = map convertPattern
 
 convertEnv :: EnvS -> Env Char
 convertEnv = \case

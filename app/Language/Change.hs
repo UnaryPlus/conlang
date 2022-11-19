@@ -3,7 +3,8 @@
 module Language.Change
   ( PSet(..), member
   , Pattern(..), Env(..), Change(..)
-  , replace, applyChange, applyChanges, traceChanges
+  , testPatterns, testEnv, replace
+  , applyChange, applyChanges, traceChanges
   ) where
 
 import qualified Data.Set as Set
