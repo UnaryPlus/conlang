@@ -23,36 +23,38 @@ getChoice i = \case
     if i <= abs w then x
       else getChoice (i - abs w) (y :| ys)
 
+
+
 consonantFront :: NonEmpty (String, Double)
 consonantFront =
-  [ ("m" , 3)
-  , ("n" , 3)
-  , ("p" , 2)
-  , ("t" , 3)
-  , ("f" , 3)
-  , ("s" , 4)
-  , ("l" , 3)
-  , ("r" , 3)
+  [ ("m" , 2)
+  , ("n" , 2)
+  , ("p" , 1)
+  , ("t" , 2)
+  , ("f" , 2)
+  , ("s" , 2)
+  , ("l" , 2)
+  , ("r" , 2)
   ]
 
 consonantO =
   consonantFront <>
-  [ ("ŋ" , 3)
-  , ("k" , 3)
-  , ("x" , 3)
-  , ("h" , 3)
+  [ ("ŋʷ" , 1)
+  , ("kʷ" , 2)
+  , ("xʷ" , 1)
+  , ("hʷ" , 2)
   ]
 
 consonantA =
   consonantFront <>
-  [ ("ŋ" , 2)
-  , ("ŋʷ", 2)
+  [ ("ŋ" , 1)
+  , ("ŋʷ", 0.5)
   , ("k" , 2)
-  , ("kʷ", 2)
-  , ("x" , 2)
-  , ("xʷ", 2)
+  , ("kʷ", 1)
+  , ("x" , 1)
+  , ("xʷ", 0.5)
   , ("h" , 2)
-  , ("hʷ", 2)
+  , ("hʷ", 1)
   ]
 
 vowel :: NonEmpty (String, Double)
@@ -93,4 +95,4 @@ genWord = do
   concat <$> replicateM n genSyllable
 
 genWordIO :: IO String
-genWordIO = evalRandIO (evalStateT genWord False)
+genWordIO = evalRandIO (evalStateT genWord True)
