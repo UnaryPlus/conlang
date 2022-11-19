@@ -3,34 +3,38 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Evolve where
+module Evolve (prepare, evolve) where
 
 import qualified Data.Set as Set
-import qualified Data.Map as Map
-import Data.Set (Set)
-import Data.Map (Map)
-import Data.Text (Text)
+import qualified Data.List as List
 
 import Language.Change
 import Language.Change.Quote (sim, spl)
 
-type Sound = Text
+prepare :: String -> String
+prepare = addHash . addStress
+  where
+    addStress str =
+      case List.break isVowel str of
+        (left, []) -> left
+        (left, x:right) -> left ++ x : '\'' : right
 
---TODO: update sound sets
-setC, setV, setVoiced :: Set Char
-setC = Set.fromList "mnŋptkfsxhlr"
-setV = Set.fromList "aeiou"
-setVoiced = undefined
+    addHash str = str ++ "#"
+
+evolve :: String -> String
+evolve = takeWhile (/= '#')
+       . applyChanges stage3 . contract
+       . applyChanges stage2 . vowelLoss
+       . applyChanges stage1
+
+voicedC = Set.fromList "mnŋbdgvzʒɣlr"
+voicelessC = Set.fromList "ptkfsʃxh"
+setC = voicedC `Set.union` voicelessC
+setV = Set.fromList "aeiəɨou"
+setVoiced = voicedC `Set.union` setV
 
 isVowel :: Char -> Bool
 isVowel x = x `Set.member` setV
-
-stage1 :: [Change Char]
-stage1 =
-  [ [sim| o > u / _V!*{ie} |]
-  , [sim| s > ʃ / _{iu} |]
-  , [sim| ŋ > ŋʷ, k > kʷ, x > xʷ, h > hʷ / _{ou} |]
-  ]
 
 data VowelState
   = First
@@ -65,15 +69,22 @@ stressedVowel = \case
   x:xs | isVowel x -> (1+) <$> stressedVowel xs
   _:xs -> stressedVowel xs
 
+stage1 :: [Change Char]
+stage1 =
+  [ [sim| o > u / _V!*{ie} |]
+  , [sim| s > ʃ / _{iu} |]
+  ]
+
 stage2 :: [Change Char]
 stage2 =
   [ [sim| i > ɨ, e > ə, a > o / _'?Cʷ{C#} |]
+  , [sim| ʷ > / _{C#} |]
   , [spl|
       ɨ > u / ʷ_
         > i / iV!*_
         > ə / _
     |]
-  , [sim| ʷ > / _{ouC#} |]
+  , [sim| ŋ > ŋʷ, k > kʷ, x > xʷ, h > hʷ / _{ou} |]
   , [spl|
       {m n ŋ}
         > m / _{mp}
@@ -93,8 +104,6 @@ stage2 =
       t > rᵒ / _{mŋpk}
       k > x / _{mnpt}
 
-      x > k / _{sʃ}
-
       f > v / _{mnŋlr}
       s > z / _{mnŋlr}
       ʃ > ʒ / _{mnŋlr}
@@ -105,15 +114,16 @@ stage2 =
     |]
   , [spl|
       x > h / {ŋk}_
-        > k / {sʃ}_
       h > x / x_
-
       r > d / z_, ʒ_, l_
-      l > n / n_
     |]
   , [sim| m > mp, n > nt, ŋ > ŋk / _{fsʃxh} |]
   , [sim| m > mb, n > nd, ŋ > ŋg / _{lr} |]
-  --TODO: voicing
+  , [sim|
+      p > b, t > d, k > g,
+      f > v, s > z, ʃ > ʒ, x > ɣ
+      / [Voiced]_ʷ?V'!
+    |]
   , [sim| ᵒ > / _ |]
   , [spl|
       a > a' / 'V!*_V
@@ -125,7 +135,6 @@ stage2 =
 
       ' > / _V!*VV
     |]
-
   ]
 
 contract :: Eq a => [a] -> [a]
@@ -135,7 +144,6 @@ contract = \case
 
 stage3 :: [Change Char]
 stage3 =
-    --TODO: account for stress
   [ [spl|
       a >   / _ə
       i > j / _V
@@ -145,4 +153,5 @@ stage3 =
       e > i / {au}_
       o > u / {ae}_
     |]
+  --TODO: fix stress
   ]
