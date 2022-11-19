@@ -113,9 +113,19 @@ stage2 =
     |]
   , [sim| m > mp, n > nt, ŋ > ŋk / _{fsʃxh} |]
   , [sim| m > mb, n > nd, ŋ > ŋg / _{lr} |]
-  --TODO: stress shift
   --TODO: voicing
   , [sim| ᵒ > / _ |]
+  , [spl|
+      a > a' / 'V!*_V
+      e > e' / 'V!*_V
+      ə > ə' / 'V!*_V
+      i > i' / 'V!*_V
+      o > o' / 'V!*_V
+      u > u' / 'V!*_V
+
+      ' > / _V!*VV
+    |]
+
   ]
 
 contract :: Eq a => [a] -> [a]
@@ -125,6 +135,7 @@ contract = \case
 
 stage3 :: [Change Char]
 stage3 =
+    --TODO: account for stress
   [ [spl|
       a >   / _ə
       i > j / _V
