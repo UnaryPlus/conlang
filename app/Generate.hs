@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE FlexibleContexts #-}
-module Generate where
+module Generate (genWord) where
 
 import qualified Control.Monad.State as State
 import Control.Monad.State (MonadState, evalStateT)
@@ -22,8 +22,6 @@ getChoice i = \case
   (x, w) :| y:ys ->
     if i <= abs w then x
       else getChoice (i - abs w) (y :| ys)
-
-
 
 consonantFront :: NonEmpty (String, Double)
 consonantFront =
@@ -89,10 +87,10 @@ wordLength =
   , (5, 0.5)
   ]
 
-genWord :: (MonadState Bool m, MonadRandom m) => m String
-genWord = do
+genWord' :: (MonadState Bool m, MonadRandom m) => m String
+genWord' = do
   n <- choose wordLength
   concat <$> replicateM n genSyllable
 
-genWordIO :: IO String
-genWordIO = evalRandIO (evalStateT genWord True)
+genWord :: IO String
+genWord = evalRandIO (evalStateT genWord' True)
