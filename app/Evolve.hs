@@ -6,10 +6,9 @@
 module Evolve (evolve, evolveTrace) where
 
 import qualified Data.Set as Set
-import qualified Data.List as List
 
 import Language.Change
-import Language.Change.Quote (pat, sim, spl)
+import Language.Change.Quote (sim, spl)
 
 evolve :: String -> String
 evolve =
@@ -47,7 +46,6 @@ vowelLoss' (strong, afterVowel) = \case
   x:xs | isVowel x -> let
     beforeVowel = case xs of { [] -> False; v:_ -> isVowel v }
     keep = strong || beforeVowel || afterVowel
-
     xs' = vowelLoss' (not strong, True) xs
     in if keep then x:xs' else xs'
 
@@ -121,7 +119,6 @@ stage3 :: [Change Char]
 stage3 =
   [ [spl|
       a >   / _ə
-      i > j / _V
       u > o / _V
 
       ə > a / {eu}_
