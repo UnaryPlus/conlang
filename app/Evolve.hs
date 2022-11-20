@@ -9,7 +9,7 @@ import qualified Data.Set as Set
 import qualified Data.List as List
 
 import Language.Change
-import Language.Change.Quote (sim, spl)
+import Language.Change.Quote (pat, sim, spl)
 
 addStress :: String -> String
 addStress str =
@@ -58,7 +58,7 @@ vowelLoss' (strong, st) = \case
   [] -> []
   x:xs | isVowel x -> let
     strong' = case xs of { '\'':_ -> True; _ -> strong }
-    beforeVowel = case xs of { v:_ | isVowel v -> True; _ -> False }
+    beforeVowel = testPatterns xs [pat| '?V |]
     keep = strong' || beforeVowel || st == AfterVowel || st == First
 
     st' = if beforeVowel then AfterVowel else Other
@@ -131,16 +131,7 @@ stage2 =
       / [Voiced]_ʷ?V'!
     |]
   , [sim| ᵒ > / _ |]
-  , [spl|
-      a > a' / 'V!*_V
-      e > e' / 'V!*_V
-      ə > ə' / 'V!*_V
-      i > i' / 'V!*_V
-      o > o' / 'V!*_V
-      u > u' / 'V!*_V
-
-      ' > / _V!*VV
-    |]
+  , [sim| ' > . / _V?V!*VV |]
   ]
 
 contract :: Eq a => [a] -> [a]
@@ -159,5 +150,4 @@ stage3 =
       e > i / {au}'?_
       o > u / {ae}'?_
     |]
-  --TODO: fix stress
   ]
