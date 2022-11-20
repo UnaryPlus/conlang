@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 
-module Evolve (addStress, evolve, evolveTrace) where
+module Evolve (evolve, evolveTrace) where
 
 import qualified Data.Set as Set
 import qualified Data.List as List
@@ -11,24 +11,20 @@ import qualified Data.List as List
 import Language.Change
 import Language.Change.Quote (pat, sim, spl)
 
-addStress :: String -> String
-addStress str =
-  case List.break isVowel str of
-    (left, []) -> left
-    (left, x:right) -> left ++ x : '\'' : right
-
 evolve :: String -> String
-evolve = takeWhile (/= '#')
-       . applyChanges stage3
-       . contract
-       . applyChanges stage2
-       . vowelLoss
-       . applyChanges stage1
-       . (++ "#")
+evolve =
+    takeWhile (/= '#')
+  . applyChanges stage3
+  . contract
+  . applyChanges stage2
+  . vowelLoss
+  . applyChanges stage1
+  . prepare
+  where prepare str = "'" ++ str ++ "#"
 
 evolveTrace :: String -> [String]
 evolveTrace wd = let
-  s1 = traceChanges stage1 (wd ++ "#")
+  s1 = traceChanges stage1 ("'" ++ wd ++ "#")
   s2 = traceChanges stage2 (vowelLoss (last s1))
   s3 = traceChanges stage3 (contract (last s2))
   in s1 ++ s2 ++ s3
@@ -42,38 +38,20 @@ setVoiced = voicedC `Set.union` setV
 isVowel :: Char -> Bool
 isVowel x = x `Set.member` setV
 
-data VowelState
-  = First
-  | AfterVowel
-  | Other
-  deriving (Eq)
-
 vowelLoss :: String -> String
-vowelLoss xs = let
-  strong = maybe True odd (stressedVowel xs)
-  in vowelLoss' (strong, First) xs
+vowelLoss = vowelLoss' (True, False)
 
-vowelLoss' :: (Bool, VowelState) -> String -> String
-vowelLoss' (strong, st) = \case
+vowelLoss' :: (Bool, Bool) -> String -> String
+vowelLoss' (strong, afterVowel) = \case
   [] -> []
   x:xs | isVowel x -> let
-    strong' = case xs of { '\'':_ -> True; _ -> strong }
-    beforeVowel = testPatterns xs [pat| '?V |]
-    keep = strong' || beforeVowel || st == AfterVowel || st == First
+    beforeVowel = case xs of { [] -> False; v:_ -> isVowel v }
+    keep = strong || beforeVowel || afterVowel
 
-    st' = if beforeVowel then AfterVowel else Other
-    xs' = vowelLoss' (not strong', st') xs
+    xs' = vowelLoss' (not strong, True) xs
     in if keep then x:xs' else xs'
 
-    | otherwise -> x : vowelLoss' (strong, st) xs
-
---how many vowels are before the '?
-stressedVowel :: String -> Maybe Int
-stressedVowel = \case
-  [] -> Nothing
-  '\'':_ -> Just 0
-  x:xs | isVowel x -> (1+) <$> stressedVowel xs
-  _:xs -> stressedVowel xs
+    | otherwise -> x : vowelLoss' (strong, False) xs
 
 stage1 :: [Change Char]
 stage1 =
@@ -83,7 +61,7 @@ stage1 =
 
 stage2 :: [Change Char]
 stage2 =
-  [ [sim| i > ɨ, e > ə, a > o / _'?Cʷ{C#} |]
+  [ [sim| i > ɨ, e > ə, a > o / _Cʷ{C#} |]
   , [sim| ʷ > / _{C#} |]
   , [spl|
       ɨ > u / ʷ_
@@ -128,10 +106,10 @@ stage2 =
   , [sim|
       p > b, t > d, k > g,
       f > v, s > z, ʃ > ʒ, x > ɣ
-      / [Voiced]_ʷ?V'!
+      / [Voiced]_ʷ?V
     |]
   , [sim| ᵒ > / _ |]
-  , [sim| ' > . / _V?V!*VV |]
+  , [sim| ' > . / _V!*VV*V!*VV |]
   ]
 
 contract :: Eq a => [a] -> [a]
@@ -142,12 +120,12 @@ contract = \case
 stage3 :: [Change Char]
 stage3 =
   [ [spl|
-      a >   / _'?ə
-      i > j / _'?V
-      u > o / _'?V
+      a >   / _ə
+      i > j / _V
+      u > o / _V
 
-      ə > a / {eu}'?_
-      e > i / {au}'?_
-      o > u / {ae}'?_
+      ə > a / {eu}_
+      e > i / {au}_
+      o > u / {ae}_
     |]
   ]
