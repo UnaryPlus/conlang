@@ -1,3 +1,7 @@
+{-
+This module is not up-to-date and will be revised entirely.
+-}
+
 module Kalvaszti.Dictionary where
 
 data Class = N | V
@@ -13,10 +17,6 @@ data Variant = With [Affix] Definition
 data Entry
   = Section String
   | E String Class Definition [Variant]
-
-{-
-Inuit kinship system but with different words for maternal/paternal grandparents
--}
 
 dictionary :: [Entry]
 dictionary =

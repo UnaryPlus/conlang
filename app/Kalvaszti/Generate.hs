@@ -1,3 +1,7 @@
+{-
+This module is not up-to-date and will be revised entirely.
+-}
+
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedLists #-}
