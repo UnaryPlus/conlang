@@ -1,41 +1,45 @@
+{- TODO: write test suite -}
+
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE QuasiQuotes #-}
 
 module Kalvaszti.Evolve (evolve, evolveTrace) where
 
-import Language.Change
-import Language.Change.Quote (sim, spl)
+import Language.Change (Change, applyChanges)
+import Language.Change.Quote (chs)
+
+import Data.Function ((&))
 
 evolve :: String -> String
-evolve =
-    takeWhile (/= '#')
-  . applyChanges stage3
-  . contract
-  . applyChanges stage2
-  . vowelLoss
-  . applyChanges stage1
-  . prepare
-  where prepare str = "'" ++ str ++ "#"
+evolve s = s ++ "#"
+  & applyChanges stage1
+  & vowelLoss
+  & applyChanges stage2
+  & degemination
+  & applyChanges stage3
+  & takeWhile (/= '#')
 
-evolveTrace :: String -> [String]
-evolveTrace wd = let
-  s1 = traceChanges stage1 ("'" ++ wd ++ "#")
-  s2 = traceChanges stage2 (vowelLoss (last s1))
-  s3 = traceChanges stage3 (contract (last s2))
-  in s1 ++ s2 ++ s3
+evolveTrace :: String -> String
+evolveTrace s = let
+  part1 = traceChanges stage1 (s ++ "#")
+  part2 = traceChanges stage2 (vowelLoss (last part1))
+  part3 = traceChanges stage3 (degemination (last part2))
+  in part1 ++ part2 ++ part3
 
-voicedC = Set.fromList "mnŋbdgvzʒɣlr"
-voicelessC = Set.fromList "ptkfsʃxh"
-setC = voicedC `Set.union` voicelessC
-setV = Set.fromList "aeiəɨou"
-setVoiced = voicedC `Set.union` setV
+setV = "aeiouʏɨə"
 
 isVowel :: Char -> Bool
-isVowel x = x `Set.member` setV
+isVowel x = x `elem` setV
+
+stage1 :: [Change Char]
+stage1 = [chs|
+  * o > ʏ / _V!*{ie}
+  * s > ʃ / _{iʏ}
+  |]
 
 vowelLoss :: String -> String
-vowelLoss = vowelLoss' (True, False)
+vowelLoss = vowelLoss' (True, False) 
 
 vowelLoss' :: (Bool, Bool) -> String -> String
 vowelLoss' (strong, afterVowel) = \case
@@ -48,78 +52,61 @@ vowelLoss' (strong, afterVowel) = \case
 
     | otherwise -> x : vowelLoss' (strong, False) xs
 
-stage1 :: [Change Char]
-stage1 =
-  [ [sim| o > u / _V!*{ie} |]
-  , [sim| s > ʃ / _{iu} |]
-  ]
-
 stage2 :: [Change Char]
-stage2 =
-  [ [sim| i > ɨ, e > ə, a > o / _Cʷ{C#} |]
-  , [sim| ʷ > / _{C#} |]
-  , [spl|
-      ɨ > u / ʷ_
-        > i / iV!*_
-        > ə / _
-    |]
-  , [sim| ŋ > ŋʷ, k > kʷ, x > xʷ, h > hʷ / _{ou} |]
-  , [spl|
-      {m n ŋ}
-        > m / _{mp}
-        > n / _{nt}
-        > ŋ / _{ŋk}
+stage2 = [chs|
+  * ʏ > { o / _V ; u / _ }
+  * { i > ɨ; e > ə; a > o } / _Cʷ{C#}
+    ŋ > m / _ʷ{C#}
+    ʷ > % / _{C#}
+  * { ŋ > ŋʷ; k > kʷ; x > xʷ; h > hʷ } / _o
+  * ɨ > { u / ʷ_; i / iV!*_; ə / _ }
 
-      s > ʃ / _ʃ
-      ʃ > s / _s
+  * ə > a / _{aeo}
+    e > i / _{ao}
+    o > u / _{ae}
+  * { aa > a; ee > e; ii > i; oo > o } / _
 
-      h > f / _{pf}
-        > rᵒ / _t
-        > s / _s
-        > ʃ / _ʃ
-        > x / _{kx}
+  * l > { % / i_{sʃ}, {aeo}V_{sʃ}; i / {ou}_{sʃ}; u / {ae}_{sʃ} }
+  * u > o / _i
 
-      p > f / _{nŋtk}
-      t > rᵒ / _{mŋpk}
-      k > x / _{mnpt}
+  * ŋ > m / _ʷiV, _ʷeu
+    ʷ > % / _iV, _eu
+  * a > o / ʷ_u
+    i > % / ʃ_V
 
-      f > v / _{mnŋlr}
-      s > z / _{mnŋlr}
-      ʃ > ʒ / _{mnŋlr}
+  * x > { h / _ʷ{ou} ; w / _ʷV }
+  * ʷ > % / w_
 
-      p > b / _{lr}
-      t > d / _{lr}
-      k > g / _{lr}
-    |]
-  , [spl|
-      x > h / {ŋk}_
-      h > x / x_
-      r > d / z_, ʒ_, l_
-    |]
-  , [sim| m > mp, n > nt, ŋ > ŋk / _{fsʃxh} |]
-  , [sim| m > mb, n > nd, ŋ > ŋg / _{lr} |]
-  , [sim|
-      p > b, t > d, k > g,
-      f > v, s > z, ʃ > ʒ, x > ɣ
-      / [Voiced]_ʷ?V
-    |]
-  , [sim| ᵒ > / _ |]
-  , [sim| ' > . / _V!*VV*V!*VV |]
-  ]
+  * { p > b; t > d; k > g; 
+      f > v; s > z; ʃ > ʒ; x > ɣ } / V_V
+  
+  * m, n, ŋ > { m / _p; n / _t; ŋ / _k; % / _{mnŋ} }
+    s, ʃ > % / _{sʃ}
+    h > % / _{fsʃx}
+    { p > k; m > ŋ } / _{fw}, _hʷ
+  
+  * r > t / {lsʃ}_
+    l > t / {tnsʃ}_
 
-contract :: Eq a => [a] -> [a]
-contract = \case
+  * { p > b; t > d; k > g } / {mnŋlr}_ʷ!
+    { f > v; s > z; ʃ > ʒ; x > ɣ } / {lr}_
+    x > k / {kŋ}_
+    w > hʷ / {ptk}_
+    h > { % / {fsʃx}_ʷ!, {fsʃx}_ʷ{ou}; w / {fsʃx}_ }
+    ʷ > % / {fsʃx}h_
+  |]
+
+degemination :: String -> String
+degemination = \case
   [] -> []
-  x:xs -> x : contract (dropWhile (== x) xs)
+  x:xs -> x : degemination (dropWhile (== x) xs)
 
 stage3 :: [Change Char]
-stage3 =
-  [ [spl|
-      a >   / _ə
-      u > o / _V
+stage3 = [chs|
+  * { p > f; t > r; k > x } / _{ptkmnŋ}
+    h > { f / _p; r / _t; x / _k }
+    { p > b; t > d; k > g } / _{lr}
+    { f > v; s > z; ʃ > ʒ } / _{mnŋlr} 
 
-      ə > a / {eu}_
-      e > i / {au}_
-      o > u / {ae}_
-    |]
-  ]
+  * h > x / {iu}_{C#}
+  |]
