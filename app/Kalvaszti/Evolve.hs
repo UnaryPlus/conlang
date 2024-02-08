@@ -1,4 +1,4 @@
-{- TODO: write test suite -}
+-- TODO: write test suite
 
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE BlockArguments #-}
