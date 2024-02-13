@@ -1,2 +1,8 @@
 dist-newstyle
 **/.DS_Store
+**/*.fls
+**/*.log
+**/*.out
+**/*.aux
+**/*.synctex.gz
+**/*.fdb_latexmk

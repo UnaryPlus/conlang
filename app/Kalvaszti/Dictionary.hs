@@ -4,6 +4,35 @@ This module is not up-to-date and will be revised entirely.
 
 module Kalvaszti.Dictionary where
 
+-- kal: green
+-- rus: white
+-- sei: island
+-- not: archipelago
+-- ras: person
+-- nofxa: harbor
+-- kadai: castle
+-- faʃti: language
+-- təx: town
+-- ŋʷat: city
+-- kʷouda: outer/exterior/outside (adj/v)
+-- kef: floor
+-- pau: land/country
+
+-- hʷom: world/universe
+-- sedem: western continent (loan)
+-- terba: eastern continent (loan: kǀʰerəbaʔ)
+
+-- kalvaʃti
+-- kauzei
+-- kalnot
+-- kalnofxa
+-- ruskadai
+-- kʷoudazeine
+-- hʷoŋwa kef
+-- rasxe
+
+-- kauzei < kalnot < "kal"
+
 data Class = N | V
 type Definition = String
 
