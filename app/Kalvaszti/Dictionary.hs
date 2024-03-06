@@ -14,21 +14,19 @@ module Kalvaszti.Dictionary where
 -- faʃti: language
 -- təx: town
 -- ŋʷat: city
--- kʷouda: outer/exterior/outside (adj/v)
+-- kʷouda: outer/exterior/outside (adj/v) or outer island (n)
 -- kef: floor
 -- pau: land/country
 
 -- hʷom: world/universe
 -- sedem: western continent (loan)
 -- terba: eastern continent (loan: kǀʰerəbaʔ)
+-- xema: largest city (loan)
 
 -- kalvaʃti
 -- kauzei
 -- kalnot
--- kalnofxa
 -- ruskadai
--- kʷoudazeine
--- hʷoŋwa kef
 -- rasxe
 
 -- kauzei < kalnot < "kal"
